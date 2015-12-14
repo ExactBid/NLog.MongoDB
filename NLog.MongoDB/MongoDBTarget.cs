@@ -8,20 +8,20 @@ using NLog.Targets;
 
 namespace NLog.MongoDB
 {
-	[Target("MongoDB")]
-	public sealed class MongoDBTarget : Target
-	{
-		public Func<IRepositoryProvider> GetProvider = () => new MongoServerProvider();
+    [Target("MongoDB")]
+    public sealed class MongoDBTarget : Target
+    {
+        public Func<IRepositoryProvider> GetProvider = () => new MongoServerProvider();
 
-		public MongoDBTarget()
-		{
-			Fields = new List<MongoDBTargetField>();
-		}
+        public MongoDBTarget()
+        {
+            Fields = new List<MongoDBTargetField>();
+        }
 
         #region Exposed Properties
 
-		[ArrayParameter(typeof(MongoDBTargetField), "field")]
-		public IList<MongoDBTargetField> Fields { get; private set; }
+        [ArrayParameter(typeof(MongoDBTargetField), "field")]
+        public IList<MongoDBTargetField> Fields { get; private set; }
 
         public string ConnectionString { get; set; }
 
@@ -31,11 +31,11 @@ namespace NLog.MongoDB
 
         public string Password { get; set; }
 
-	    public string CollectionName { get; set; }
+        public string CollectionName { get; set; }
 
-	    public bool UseCappedCollection { get; set; }
+        public bool UseCappedCollection { get; set; }
 
-	    public bool CreateIdField { get; set; }
+        public bool CreateIdField { get; set; }
 
         public bool AppendFields { get; set; }
 
@@ -46,25 +46,25 @@ namespace NLog.MongoDB
         #region Defaulted Properties
 
         public string Host
-		{
-			get { return _Host ?? "localhost"; }
-			set { _Host = value; }
-		}
-		private string _Host;
+        {
+            get { return _Host ?? "localhost"; }
+            set { _Host = value; }
+        }
+        private string _Host;
 
-		public int Port	
-		{
-			get { return _Port ?? 27017; }
-			set { _Port = value; }
-		}
-		private int? _Port;
+        public int Port
+        {
+            get { return _Port ?? 27017; }
+            set { _Port = value; }
+        }
+        private int? _Port;
 
-		public string Database
-		{
-			get { return _Database ?? "NLog"; }
-			set { _Database = value; }
-		}
-		private string _Database;
+        public string Database
+        {
+            get { return _Database ?? "NLog"; }
+            set { _Database = value; }
+        }
+        private string _Database;
 
         #endregion
 
@@ -90,7 +90,7 @@ namespace NLog.MongoDB
             {
                 mongoUrlBuilder = new MongoUrlBuilder(this.ConnectionString);
 
-				if (string.IsNullOrEmpty(mongoUrlBuilder.DatabaseName))
+                if (string.IsNullOrEmpty(mongoUrlBuilder.DatabaseName))
                 {
                     mongoUrlBuilder.DatabaseName = Database;
                 }
@@ -99,94 +99,117 @@ namespace NLog.MongoDB
             else
             {
                 mongoUrlBuilder = new MongoUrlBuilder
-	            {
-		            DatabaseName = Database,
-					Server = new MongoServerAddress(Host, Port)
-	            };
+                {
+                    DatabaseName = Database,
+                    Server = new MongoServerAddress(Host, Port)
+                };
 
-	            if (HasCredentials)
-	            {
-	                mongoUrlBuilder.Username = Username;
-	                mongoUrlBuilder.Password = Password;
-	            }
+                if (HasCredentials)
+                {
+                    mongoUrlBuilder.Username = Username;
+                    mongoUrlBuilder.Password = Password;
+                }
             }
 
             var mongoServerSettings = MongoServerSettings.FromUrl(mongoUrlBuilder.ToMongoUrl());
             return GetProvider().GetRepository(mongoServerSettings, mongoUrlBuilder.DatabaseName);
         }
 
-	    private bool HasCredentials
-	    {
-	        get
-	        {
-	            return !string.IsNullOrWhiteSpace(this.Username) && !string.IsNullOrWhiteSpace(this.Password);
-	        }
-	    }
+        private bool HasCredentials
+        {
+            get
+            {
+                return !string.IsNullOrWhiteSpace(this.Username) && !string.IsNullOrWhiteSpace(this.Password);
+            }
+        }
 
         private BsonDocument BuildBsonDocument(LogEventInfo logEvent)
         {
             var doc = Fields.Count == 0 || AppendFields
-				? logEvent.ToBsonDocument()
-				: new BsonDocument();
+                ? logEvent.ToBsonDocument()
+                : new BsonDocument();
 
-			if (UseCappedCollection && CreateIdField)
-				doc.AddField("_id", ObjectId.GenerateNewId());
+            if (UseCappedCollection && CreateIdField)
+                doc.AddField("_id", ObjectId.GenerateNewId());
 
-			foreach (var field in Fields)
-			{
-				if (field.Layout != null)
-				{
-					var renderedField = field.Layout.Render(logEvent);
-					if (!string.IsNullOrWhiteSpace(renderedField))
-						doc[field.Name] = renderedField;
-					continue;
-				}
+            foreach (var field in Fields)
+            {
+                if (field.Layout != null)
+                {
+                    var renderedField = field.Layout.Render(logEvent);
+                    if (!string.IsNullOrWhiteSpace(renderedField))
+                    {
+                        var bsonTypeValue = field.BsonType;
+                        if (!string.IsNullOrWhiteSpace(bsonTypeValue))
+                        {
+                            const bool IgnoreCase = true;
+                            BsonType bsonType;
+                            if (Enum.TryParse(bsonTypeValue, IgnoreCase, out bsonType))
+                            {
+                                var bsonValue = BsonTypeMapper.MapToBsonValue(renderedField, bsonType);
+                                doc[field.Name] = bsonValue;
+                            }
+                            else
+                            {
+                                var msg = "Unknown BsonType specified: " + bsonTypeValue;
+                                msg += ". Note that the type name must match enum names from the MongoDB.Bson.BsonType in the C# driver and do not necessarily match the MongoDB internal type names.";
+                                throw new InvalidOperationException(msg);
+                            }
+                        }
+                        else
+                        {
+                            doc[field.Name] = renderedField;
+                        }
+                    }
 
-				var searchResult = logEvent.GetValue(field.Name);
-				if (!searchResult.Succeded)
-					throw new InvalidOperationException(string.Format("Invalid field name '{0}'.", field.Name));
+                    continue;
+                }
 
-				doc.AddField(field.Name, searchResult.Value);
-			}
+                var searchResult = logEvent.GetValue(field.Name);
+                if (!searchResult.Succeded)
+                    throw new InvalidOperationException(string.Format("Invalid field name '{0}'.", field.Name));
 
-			return doc;
-		}
+                doc.AddField(field.Name, searchResult.Value);
+            }
 
-		private void VerifyTargetConsistency()
-		{
-			if (UseCappedCollection)
-			{
-				if (!CappedCollectionSize.HasValue)
-					throw new InvalidOperationException("CappedCollectionSize required to use capped collection.");
-			}
-		}
+            return doc;
+        }
 
-		#endregion
+        private void VerifyTargetConsistency()
+        {
+            if (UseCappedCollection)
+            {
+                if (!CappedCollectionSize.HasValue)
+                    throw new InvalidOperationException("CappedCollectionSize required to use capped collection.");
+            }
+        }
+
+        #endregion
 
 #if DEBUG
 
         internal void TestWrite(LogEventInfo logEvent)
-		{
-			Write(logEvent);
-		}
+        {
+            Write(logEvent);
+        }
 
 #endif
 
-		protected override void Write(LogEventInfo logEvent)
-		{
-			VerifyTargetConsistency();
+        protected override void Write(LogEventInfo logEvent)
+        {
+            VerifyTargetConsistency();
 
-			using (var repository = GetRepository())
-			{
-			    var collectionName = !string.IsNullOrWhiteSpace(CollectionName)
-					? CollectionName
-					: logEvent.LoggerName;
+            using (var repository = GetRepository())
+            {
+                var collectionName = !string.IsNullOrWhiteSpace(CollectionName)
+                    ? CollectionName
+                    : logEvent.LoggerName;
 
-				if (UseCappedCollection)
-					repository.CheckCollection(collectionName, CappedCollectionSize.Value, CappedCollectionMaxItems, CreateIdField);
-                
-				repository.Insert(collectionName, BuildBsonDocument(logEvent));
-			}
+                if (UseCappedCollection)
+                    repository.CheckCollection(collectionName, CappedCollectionSize.Value, CappedCollectionMaxItems, CreateIdField);
+
+                repository.Insert(collectionName, BuildBsonDocument(logEvent));
+            }
         }
     }
 }
