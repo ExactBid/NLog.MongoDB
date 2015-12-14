@@ -23,7 +23,6 @@ Global
 		{2B3F7590-CCF1-472E-B356-0F7BB17D35E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2B3F7590-CCF1-472E-B356-0F7BB17D35E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2B3F7590-CCF1-472E-B356-0F7BB17D35E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2B3F7590-CCF1-472E-B356-0F7BB17D35E2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
