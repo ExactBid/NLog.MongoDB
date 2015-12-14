@@ -70,7 +70,7 @@
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <PropertyGroup>
     <PostBuildEvent>mkdir "$(ProjectDir)lib\net40"
-copy "$(TargetDir)NLog.MongoDB.dll" "$(ProjectDir)lib\net40" /y</PostBuildEvent>
+copy "$(TargetDir)NLog.MongoDB.*" "$(ProjectDir)lib\net40" /y</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
