@@ -8,11 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("NLog.MongoDB")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Logrythmik")]
+[assembly: AssemblyCompany("ExactBid, LLC")]
 [assembly: AssemblyProduct("NLog.MongoDB")]
-[assembly: AssemblyCopyright("Copyright © Logrythmik 2012")]
-[assembly: AssemblyTrademark("")]
-[assembly: AssemblyCulture("")]
+[assembly: AssemblyCopyright("Copyright © ExactBid 2015")]
 
 [assembly: InternalsVisibleTo("NLog.MongoDB.Tests")]
 
@@ -35,3 +33,4 @@ using System.Runtime.InteropServices;
 // by using the '*' as shown below:
 [assembly: AssemblyVersion("0.7.0")]
 [assembly: AssemblyFileVersion("0.7.0")]
+[assembly: AssemblyInformationalVersion("0.7.0")]
